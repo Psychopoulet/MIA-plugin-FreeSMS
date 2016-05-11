@@ -1,0 +1,14 @@
+{
+  "name": "SMS Free API",
+  "description": "Envoyez des SMS via l'API de Free dans MIA",
+  "version": "1.0.0",
+  "main": "main.js",
+  "author": "Sébastien VIDAL",
+  "license": "ISC",
+  "github" : "https://github.com/Psychopoulet/MIA-plugin-FreeSMS",
+  "widget" : "web/template.html",
+  "templates" : [],
+	"javascripts" : [
+		"web/ControllerWidget.js"
+	]
+}
