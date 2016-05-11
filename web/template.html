@@ -1,0 +1,75 @@
+
+<div class="col-xs-12 col-md-6">
+
+	<div class="card" data-ng-controller="ControllerFreeSMS">
+
+		<div class="card-header">{{plugin.name}}</div>
+
+		<div class="card-block">
+
+			<div class="form-group">
+
+				<label>Téléphones ({{phones.length}})</label>
+
+				<div class="input-group">
+
+					<div class="form-group" data-ng-show="1 >= phones.length">
+						<div class="form-control" data-ng-show="0 == phones.length">-- Aucun téléphone --</div>
+						<div class="form-control" data-ng-show="1 == phones.length">{{selectedphone.name}}</div>
+					</div>
+
+					<select class="form-control"
+							data-ng-disabled="!phones.length" data-ng-class="{'disabled' : !phones.length }"
+							data-ng-options="phone.name for phone in phones"
+							data-ng-model="selectedphone"
+							data-ng-show="1 < phones.length">
+						<option value="">-- Choisissez un téléphone --</option>
+					</select>
+
+					<span class="input-group-btn">
+
+						<button type="button" class="btn btn-primary"
+								data-ng-click="addPhone();"
+								data-toggle="tooltip" data-placement="auto" title="Ajouter un téléphone">
+							<span class="fa fa-plus"></span>
+						</button>
+
+						<button type="button" class="btn btn-primary"
+								data-ng-disabled="!selectedphone" data-ng-class="{'disabled' : !selectedphone  }"
+								data-ng-click="editPhone(selectedphone);"
+								data-toggle="tooltip" data-placement="auto" title="Modifier ce téléphone">
+								<span class="fa fa-pencil"></span>
+						</button>
+
+						<button type="button" class="btn btn-primary"
+								data-ng-disabled="!selectedphone" data-ng-class="{'disabled' : !selectedphone  }"
+								data-ng-click="deletePhone(selectedphone);"
+								data-toggle="tooltip" data-placement="auto" title="Supprimer ce téléphone">
+								<span class="fa fa-trash"></span>
+						</button>
+
+					</span>
+
+				</div>
+
+			</div>
+
+			<div data-ng-show="selectedphone">
+
+				<div class="form-group">
+
+					<label>Message</label>
+
+					<div class="form-group">
+						<textarea class="form-control"></textarea>
+					</div>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
