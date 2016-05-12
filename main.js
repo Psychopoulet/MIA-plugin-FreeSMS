@@ -99,182 +99,186 @@ module.exports = class MIAPluginVideosManager extends require('simplepluginsmana
 
 	load (Container) {
 
-		let that = this;
+		let that = this, user;
+		return Container.get('users').lastInserted().then(function(_user) {
 
-		return new Promise(function(resolve, reject) {
+			user = _user;
 
-			try {
+			return Container.get('actions').bindExecuter('sms.freeapi.send', function(action) {
+
+				if (action.params) {
+					console.log(action);
+				}
 				
-				Container.get('users').lastInserted().then(function(user) {
+			});
 
-					that.phones = new Categories(Container.get('db'));
-					that.loaded = true;
+		}).then(function() {
 
-					Container.get('websockets').onDisconnect(_freeSocket).onLog(function(socket) {
+			return new Promise(function(resolve, reject) {
 
-						if (that.loaded) {
-							
-							that.phones.searchByUser(user).then(function(phones) {
-								socket.emit('plugins.freesms.phones', phones);
-							}).catch(function(err) {
-								Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUser] : ' + ((err.message) ? err.message : err));
-								socket.emit('plugins.freesms.error', (err.message) ? err.message : err);
-							});
+				that.phones = new Phones(Container.get('db'));
+				that.loaded = true;
 
-							socket.on('plugins.freesms.phone.add', function (data) {
+				Container.get('websockets').onDisconnect(_freeSocket).onLog(function(socket) {
 
-								if (Container.get('conf').get('debug')) {
-									Container.get('logs').log('plugins.freesms.phone.add');
-								}
+					if (that.loaded) {
+						
+						that.phones.searchByUser(user).then(function(phones) {
+							socket.emit('plugins.freesms.phones', phones);
+						}).catch(function(err) {
+							Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUser] : ' + ((err.message) ? err.message : err));
+							socket.emit('plugins.freesms.error', (err.message) ? err.message : err);
+						});
 
-								try {
+						socket.on('plugins.freesms.phone.add', function (data) {
 
-									that.phones.searchByUserByNameOrCode(user, data.name, data.code).then(function(phone) {
+							if (Container.get('conf').get('debug')) {
+								Container.get('logs').log('plugins.freesms.phone.add');
+							}
 
-										if (phone) {
-											socket.emit('plugins.freesms.error', 'Ce téléphone existe déjà.');
-										}
-										else {
-											
-											that.phones.add({
-												user: user,
-												name : data.name
-											}).then(function(phone) {
+							try {
 
-												Container.get('websockets').emit('plugins.freesms.phone.added', phone);
+								that.phones.searchByUserByNameOrCode(user, data.name, data.code).then(function(phone) {
 
-											}).catch(function(err) {
-												Container.get('logs').err('-- [plugins/FreeSMS/phones/add] : ' + err);
-												socket.emit('plugins.freesms.error', err);
-											})
+									if (phone) {
+										socket.emit('plugins.freesms.error', 'Ce téléphone existe déjà.');
+									}
+									else {
+										
+										that.phones.add({
+											user: user,
+											name : data.name
+										}).then(function(phone) {
 
-										}
+											Container.get('websockets').emit('plugins.freesms.phone.added', phone);
 
-									}).catch(function(err) {
-										Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUserByNameOrCode] : ' + err);
-										socket.emit('plugins.freesms.error', err);
-									});
+										}).catch(function(err) {
+											Container.get('logs').err('-- [plugins/FreeSMS/phones/add] : ' + err);
+											socket.emit('plugins.freesms.error', err);
+										})
 
-								}
-								catch (e) {
-									Container.get('logs').err('-- [plugins/FreeSMS/phones/add] : ' + ((e.message) ? e.message : e));
-									Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
-								}
+									}
 
-							})
-							.on('plugins.freesms.phone.edit', function (data) {
+								}).catch(function(err) {
+									Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUserByNameOrCode] : ' + err);
+									socket.emit('plugins.freesms.error', err);
+								});
 
-								if (Container.get('conf').get('debug')) {
-									Container.get('logs').log('plugins.freesms.phone.edit');
-								}
+							}
+							catch (e) {
+								Container.get('logs').err('-- [plugins/FreeSMS/phones/add] : ' + ((e.message) ? e.message : e));
+								Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
+							}
 
-								try {
+						})
+						.on('plugins.freesms.phone.edit', function (data) {
 
-									that.phones.searchById(data.id).then(function(phone) {
+							if (Container.get('conf').get('debug')) {
+								Container.get('logs').log('plugins.freesms.phone.edit');
+							}
 
-										if (!phone) {
-											socket.emit('plugins.freesms.error', 'Impossible de trouver ce téléphone.');
-										}
-										else {
-													
-											that.phones.searchByUserByNameOrCode(user, data.name, data.code).then(function(_category) {
+							try {
 
-												if (_category) {
-													socket.emit('plugins.freesms.error', 'Ce nom ou ce numéro existe déjà.');
-												}
-												else {
+								that.phones.searchById(data.id).then(function(phone) {
 
-													phone.name = data.name;
-													phone.code = data.code;
-													phone.freeapi = data.freeapi;
+									if (!phone) {
+										socket.emit('plugins.freesms.error', 'Impossible de trouver ce téléphone.');
+									}
+									else {
+												
+										that.phones.searchByUserByNameOrCode(user, data.name, data.code).then(function(_category) {
 
-													that.phones.edit(phone).then(function(phone) {
-														Container.get('websockets').emit('plugins.freesms.phone.edited', phone);
-													}).catch(function(err) {
-														Container.get('logs').err('-- [plugins/FreeSMS/phones/edit] : ' + err);
-														socket.emit('plugins.freesms.error', err);
-													});
+											if (_category) {
+												socket.emit('plugins.freesms.error', 'Ce nom ou ce numéro existe déjà.');
+											}
+											else {
 
-												}
-													
-											}).catch(function(err) {
-												Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUserByNameOrCode] : ' + err);
-												socket.emit('plugins.freesms.error', err);
-											});
+												phone.name = data.name;
+												phone.code = data.code;
+												phone.freeapi = data.freeapi;
 
-										}
-											
-									}).catch(function(err) {
-										Container.get('logs').err('-- [plugins/FreeSMS/phones/searchById] : ' + err);
-										socket.emit('plugins.freesms.error', err);
-									});
-
-								}
-								catch (e) {
-									Container.get('logs').err('-- [plugins/FreeSMS/phones/edit] : ' + ((e.message) ? e.message : e));
-									Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
-								}
-
-							})
-							.on('plugins.freesms.phone.delete', function (data) {
-
-								if (Container.get('conf').get('debug')) {
-									Container.get('logs').log('plugins.freesms.phone.delete');
-								}
-
-								try {
-
-									that.phones.searchById(data.id).then(function(phone) {
-
-										if (!phone) {
-											socket.emit('plugins.freesms.error', 'Impossible de trouver ce téléphone.');
-										}
-										else {
-
-											that.phones.delete(phone).then(function() {
-
-												that.phones.searchByUser(user).then(function(phones) {
-													socket.emit('plugins.freesms.phones', phones);
+												that.phones.edit(phone).then(function(phone) {
+													Container.get('websockets').emit('plugins.freesms.phone.edited', phone);
 												}).catch(function(err) {
-
-													Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUser] : ' + ((err.message) ? err.message : err));
-													socket.emit('plugins.freesms.error', (err.message) ? err.message : err);
-
+													Container.get('logs').err('-- [plugins/FreeSMS/phones/edit] : ' + err);
+													socket.emit('plugins.freesms.error', err);
 												});
+
+											}
 												
+										}).catch(function(err) {
+											Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUserByNameOrCode] : ' + err);
+											socket.emit('plugins.freesms.error', err);
+										});
+
+									}
+										
+								}).catch(function(err) {
+									Container.get('logs').err('-- [plugins/FreeSMS/phones/searchById] : ' + err);
+									socket.emit('plugins.freesms.error', err);
+								});
+
+							}
+							catch (e) {
+								Container.get('logs').err('-- [plugins/FreeSMS/phones/edit] : ' + ((e.message) ? e.message : e));
+								Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
+							}
+
+						})
+						.on('plugins.freesms.phone.delete', function (data) {
+
+							if (Container.get('conf').get('debug')) {
+								Container.get('logs').log('plugins.freesms.phone.delete');
+							}
+
+							try {
+
+								that.phones.searchById(data.id).then(function(phone) {
+
+									if (!phone) {
+										socket.emit('plugins.freesms.error', 'Impossible de trouver ce téléphone.');
+									}
+									else {
+
+										that.phones.delete(phone).then(function() {
+
+											that.phones.searchByUser(user).then(function(phones) {
+												socket.emit('plugins.freesms.phones', phones);
 											}).catch(function(err) {
-												Container.get('logs').err('-- [plugins/FreeSMS/phones/delete] : ' + err);
-												socket.emit('plugins.freesms.error', err);
+
+												Container.get('logs').err('-- [plugins/FreeSMS/phones/searchByUser] : ' + ((err.message) ? err.message : err));
+												socket.emit('plugins.freesms.error', (err.message) ? err.message : err);
+
 											});
+											
+										}).catch(function(err) {
+											Container.get('logs').err('-- [plugins/FreeSMS/phones/delete] : ' + err);
+											socket.emit('plugins.freesms.error', err);
+										});
 
-										}
-												
-									}).catch(function(err) {
-										Container.get('logs').err('-- [plugins/FreeSMS/phones/searchById] : ' + err);
-										socket.emit('plugins.freesms.error', err);
-									});
+									}
+											
+								}).catch(function(err) {
+									Container.get('logs').err('-- [plugins/FreeSMS/phones/searchById] : ' + err);
+									socket.emit('plugins.freesms.error', err);
+								});
 
-								}
-								catch (e) {
-									Container.get('logs').err('-- [plugins/FreeSMS/phones/delete] : ' + ((e.message) ? e.message : e));
-									Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
-								}
+							}
+							catch (e) {
+								Container.get('logs').err('-- [plugins/FreeSMS/phones/delete] : ' + ((e.message) ? e.message : e));
+								Container.get('websockets').emit('plugins.freesms.error', ((e.message) ? e.message : e));
+							}
 
-							});
+						});
 
-						}
+					}
 
-					});
+				});
 
-					resolve();
-				
-				}).catch(reject);
+				resolve();
 
-			}
-			catch(e) {
-				reject((e.message) ? e.message : e);
-			}
-
+			});
+		
 		});
 
 	}
@@ -284,7 +288,6 @@ module.exports = class MIAPluginVideosManager extends require('simplepluginsmana
 		super.unload();
 
 		let that = this;
-
 		return new Promise(function(resolve, reject) {
 
 			try {
@@ -306,13 +309,20 @@ module.exports = class MIAPluginVideosManager extends require('simplepluginsmana
 	}
 
 	install (Container) {
-		return _runSQLFile(Container, path.join(__dirname, 'database', 'create.sql'));
+
+		return _runSQLFile(Container, path.join(__dirname, 'database', 'create.sql')).then(function() {
+
+			return Container.get('actionstypes').add({
+				name: "Envoyer un SMS avec l'API de Free",
+				command: "sms.freeapi.send"
+			});
+
+		});
 	}
 
 	update (Container) {
 
 		let that = this;
-
 		return fs.unlinkProm(path.join(__dirname, 'backup.json')).then(function() {
 			return that.install(Container);
 		});
@@ -323,6 +333,17 @@ module.exports = class MIAPluginVideosManager extends require('simplepluginsmana
 		
 		return fs.unlinkProm(path.join(__dirname, 'backup.json')).then(function() {
 			return _runSQLFile(Container, path.join(__dirname, 'database', 'delete.sql'));
+		}).then(function() {
+			return Container.get('actionstypes').getOneByCommand('sms.freeapi.send');
+		}).then(function(actionstype) {
+
+			if (actionstype) {
+				return Container.delete(actionstype);
+			}
+			else {
+				return new Promise(function(resolve, reject) { resolve(); });
+			}
+
 		});
 
 	}
